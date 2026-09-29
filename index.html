@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keystroke Dynamics & Script Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes pulse-red {
+            0%, 100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 15px 3px rgba(239, 68, 68, 0.3); }
+        }
+        .paste-blocked {
+            animation: pulse-red 0.5s ease-in-out;
+            background-color: rgba(254, 226, 226, 0.1) !important;
+        }
+        @keyframes flash-red {
+            0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
+            50% { background-color: rgba(239, 68, 68, 0.3); }
+        }
+        .bot-detected-bg {
+            animation: flash-red 1s infinite;
+            border-color: rgba(239, 68, 68, 0.8) !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col justify-between">
+
+    <header class="border-b border-slate-800 bg-slate-950/50 backdrop-blur-md sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-indigo-500/20">
+                    KT
+                </div>
+                <div>
+                    <h1 class="font-semibold text-lg leading-tight">Keystroke Script Tester</h1>
+                    <p class="text-xs text-slate-400">Macro detection via keystroke dynamics</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span id="blocker-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Paste Blocker Active
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-1 flex flex-col gap-6">
+
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 sm:p-5 text-sm text-slate-300 leading-relaxed shadow-sm">
+            <h2 class="font-semibold text-slate-100 text-base mb-1 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                How it works
+            </h2>
+            <p>
+                Direct clipboard pasting (<kbd class="px-1.5 py-0.5 bg-slate-700 text-slate-200 rounded text-xs font-mono">Ctrl+V</kbd>) into the text area is <strong class="text-rose-400">blocked</strong>.
+            </p>
+            <p class="mt-1 text-slate-400 text-xs">
+                Copy the <strong>Lorem Ipsum</strong> text below, then run your automation script (e.g., AutoHotkey, PyAutoGUI, hardware macro) to simulate typing it into the field. The system will analyze the keystroke dynamics to determine if the input is human or automated.
+            </p>
+        </div>
+
+        <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-xl p-4 flex flex-col gap-3 shadow-lg relative">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-indigo-300">Sample Text for Testing</span>
+                </div>
+                <button id="copy-lorem-btn" class="px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors flex items-center gap-1.5 shadow-md shadow-indigo-600/20 active:scale-95">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    <span>Copy to Clipboard</span>
+                </button>
+            </div>
+            <div id="lorem-text" class="bg-slate-950/80 border border-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono leading-relaxed select-all">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col bg-slate-950/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl relative">
+            
+            <div class="bg-slate-900/80 px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs uppercase tracking-wider font-semibold text-slate-400">Input Testing Field</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="clear-btn" class="px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        <span>Clear Text</span>
+                    </button>
+                    <button id="reset-analytics-btn" class="px-3 py-1.5 text-xs font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span>Reset Analytics</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative flex-1 min-h-[240px]">
+                <textarea 
+                    id="test-textarea" 
+                    placeholder="Click here and execute your macro to test detection..."
+                    class="w-full h-full min-h-[240px] p-4 bg-transparent text-slate-100 placeholder-slate-600 font-mono text-sm sm:text-base focus:outline-none resize-y transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    spellcheck="false"
+                ></textarea>
+
+                <!-- Paste Block Alert -->
+                <div id="paste-alert" class="hidden absolute top-4 right-4 bg-rose-900/90 border border-rose-500 text-rose-100 px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-medium transition-all backdrop-blur-sm z-10">
+                    <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span><strong>Paste Blocked!</strong> Direct pasting is disabled.</span>
+                </div>
+
+                <!-- Bot Detection Alert -->
+                <div id="bot-alert" class="hidden absolute inset-0 bg-rose-950/90 backdrop-blur-md flex-col items-center justify-center p-6 text-center z-20 transition-all duration-300">
+                    <div class="bg-rose-900/95 border border-rose-500 rounded-2xl p-6 max-w-sm shadow-2xl">
+                        <svg class="w-12 h-12 text-rose-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <h3 class="text-lg font-bold text-white mb-2">Automation Detected!</h3>
+                        <p class="text-xs text-rose-200 mb-4 leading-relaxed">The input speed or lack of variance indicates the use of a script or hardware macro. Input has been disabled.</p>
+                        <button id="dismiss-bot-btn" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition-colors shadow-lg shadow-rose-600/30">Acknowledge & Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border-t border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-4">
+                <div class="flex items-center space-x-4 font-mono">
+                    <span>Chars: <strong id="char-count" class="text-slate-200">0</strong></span>
+                    <span>Words: <strong id="word-count" class="text-slate-200">0</strong></span>
+                </div>
+                
+                <div class="flex items-center space-x-3 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800/50 shadow-inner">
+                    <span class="flex items-center gap-1.5" title="Average time between keystrokes">
+                        <span class="text-slate-500 uppercase text-[10px] font-bold">Avg Delay</span>
+                        <span id="avg-delay" class="font-mono text-indigo-300 font-medium">0 ms</span>
+                    </span>
+                    <span class="w-px h-3 bg-slate-700"></span>
+                    <span class="flex items-center gap-1.5" title="Standard Deviation (Variance) - low value means robotic input">
+                        <span class="text-slate-500 uppercase text-[10px] font-bold">Variance (StdDev)</span>
+                        <span id="std-dev" class="font-mono text-fuchsia-300 font-medium">0.0 ms</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-indigo-600 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none">
+        Copied to clipboard!
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const textarea = document.getElementById('test-textarea');
+            const pasteAlert = document.getElementById('paste-alert');
+            const charCount = document.getElementById('char-count');
+            const wordCount = document.getElementById('word-count');
+            const clearBtn = document.getElementById('clear-btn');
+            const resetBtn = document.getElementById('reset-analytics-btn');
+            const copyLoremBtn = document.getElementById('copy-lorem-btn');
+            const loremText = document.getElementById('lorem-text');
+            const toast = document.getElementById('toast');
+
+            const botAlert = document.getElementById('bot-alert');
+            const dismissBotBtn = document.getElementById('dismiss-bot-btn');
+            const avgDelayEl = document.getElementById('avg-delay');
+            const stdDevEl = document.getElementById('std-dev');
+
+            let alertTimeout = null;
+
+            // Tracking State
+            let lastKeydownTime = 0;
+            let keyDelays = [];
+            const MAX_DELAYS_TRACKED = 50; 
+            const REQUIRED_KEYSTROKES = 10; // Minimum strokes before detecting
+
+            function updateCounters() {
+                const text = textarea.value;
+                charCount.textContent = text.length;
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                wordCount.textContent = words;
+            }
+
+            function showToast(message) {
+                toast.textContent = message;
+                toast.classList.remove('opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                }, 2000);
+            }
+
+            function copyToClipboard(text, successMessage) {
+                const tempInput = document.createElement('textarea');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showToast(successMessage);
+            }
+
+            // Central Analytics Reset
+            function performReset() {
+                keyDelays = [];
+                lastKeydownTime = 0;
+                avgDelayEl.textContent = '0 ms';
+                stdDevEl.textContent = '0.0 ms';
+                textarea.classList.remove('bot-detected-bg');
+                textarea.disabled = false;
+                botAlert.classList.add('hidden');
+                botAlert.classList.remove('flex');
+            }
+
+            // Trigger Bot Detection Lockdown
+            function triggerBotLockdown() {
+                textarea.classList.add('bot-detected-bg');
+                botAlert.classList.remove('hidden');
+                botAlert.classList.add('flex');
+                textarea.disabled = true; // Disable input
+            }
+
+            // Core Keystroke Analysis Logic
+            function analyzeKeystrokes() {
+                if (keyDelays.length < REQUIRED_KEYSTROKES) return;
+
+                // 1. Calculate Average
+                const sum = keyDelays.reduce((acc, val) => acc + val, 0);
+                const avg = sum / keyDelays.length;
+
+                // 2. Calculate Standard Deviation (Variance spread)
+                const variance = keyDelays.reduce((acc, val) => acc + Math.pow(val - avg, 2), 0) / keyDelays.length;
+                const stdDev = Math.sqrt(variance);
+
+                // Update Stats UI
+                avgDelayEl.textContent = `${Math.round(avg)} ms`;
+                stdDevEl.textContent = `${stdDev.toFixed(1)} ms`;
+
+                // 3. Evaluation Rules
+                // Rule A: Input is inhumanly fast (avg delay < 15ms)
+                // Rule B: Input lacks human variance (stdDev < 5ms) indicating fixed delays
+                if (avg < 15 || stdDev < 5) {
+                    triggerBotLockdown();
+                }
+            }
+
+            // Handle Keydown Dynamics
+            textarea.addEventListener('keydown', (e) => {
+                // Ignore OS auto-repeat, Backspace, and modifiers to keep data clean
+                if (e.repeat || ['Control', 'Shift', 'Alt', 'Meta', 'Tab', 'Escape', 'CapsLock', 'Backspace'].includes(e.key)) {
+                    lastKeydownTime = 0; 
+                    return;
+                }
+
+                const now = performance.now(); 
+                
+                if (lastKeydownTime !== 0) {
+                    const delay = now - lastKeydownTime;
+                    
+                    // Filter out massive human reading pauses (> 1500ms)
+                    if (delay < 1500) {
+                        keyDelays.push(delay);
+                        if (keyDelays.length > MAX_DELAYS_TRACKED) {
+                            keyDelays.shift(); 
+                        }
+                        analyzeKeystrokes();
+                    } else {
+                        // Reset if there was a massive pause to not skew recent typing rhythm
+                        keyDelays = []; 
+                    }
+                }
+                lastKeydownTime = now;
+            });
+
+            // Prevent direct pasting
+            textarea.addEventListener('paste', (e) => {
+                e.preventDefault();
+
+                textarea.classList.remove('paste-blocked');
+                void textarea.offsetWidth; // Trigger reflow
+                textarea.classList.add('paste-blocked');
+
+                pasteAlert.classList.remove('hidden');
+                clearTimeout(alertTimeout);
+                alertTimeout = setTimeout(() => {
+                    pasteAlert.classList.add('hidden');
+                }, 2500);
+            });
+
+            // Event Listeners
+            textarea.addEventListener('input', updateCounters);
+
+            copyLoremBtn.addEventListener('click', () => {
+                copyToClipboard(loremText.textContent.trim(), 'Lorem Ipsum copied!');
+            });
+
+            clearBtn.addEventListener('click', () => {
+                textarea.value = '';
+                updateCounters();
+                performReset();
+                textarea.focus();
+            });
+
+            resetBtn.addEventListener('click', () => {
+                performReset();
+                textarea.focus();
+                showToast('Analytics Reset!');
+            });
+
+            dismissBotBtn.addEventListener('click', () => {
+                performReset();
+                textarea.value = '';
+                updateCounters();
+                textarea.focus();
+            });
+        });
+    </script>
+</body>
+</html>
